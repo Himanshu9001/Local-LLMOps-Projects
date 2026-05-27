@@ -1,0 +1,4 @@
+requests==2.31.0
+beautifulsoup4==4.12.3
+lxml==5.2.1        # fast XML parser for sitemaps
+html5lib==1.1      # fallback HTML parser
