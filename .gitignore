@@ -220,3 +220,5 @@ __marimo__/
 serving/ollama/checkpoint-650/
 serving/ollama/*.zip
 serving/ollama/merged-model/
+data/processed/train.jsonl
+data/processed/
