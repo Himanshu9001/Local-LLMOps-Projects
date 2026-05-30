@@ -217,3 +217,6 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 .venv-local-llmops/
+serving/ollama/checkpoint-650/
+serving/ollama/*.zip
+serving/ollama/merged-model/
