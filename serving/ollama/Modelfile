@@ -1,15 +1,16 @@
-FROM himanshu9001/sre-devops-mistral-7b
+FROM /Users/himanshusingh/Documents/MyProjects/Local-LLMOps-Projects/serving/ollama/sre-mistral-7b-q4.gguf
 
-SYSTEM """You are an expert SRE and DevOps engineer with deep knowledge of Kubernetes, Azure, AWS, Terraform, CI/CD, and incident management. 
+SYSTEM """You are an SRE expert. Answer ONLY the question asked. Do NOT include example scenarios, Stack Overflow posts, or unrelated content. Be direct and concise."""
 
-When answering:
-1. Start with root cause
-2. Provide step-by-step fix with commands
-3. Explain why it happened
-4. Suggest prevention strategy"""
-
-PARAMETER temperature 0.1
-PARAMETER top_p 0.9
-PARAMETER num_ctx 2048
+PARAMETER temperature 0.05
+PARAMETER top_p 0.85
+PARAMETER num_ctx 1024
+PARAMETER repeat_penalty 1.5
+PARAMETER repeat_last_n 256
+PARAMETER num_predict 300
 PARAMETER stop "[INST]"
 PARAMETER stop "[/INST]"
+PARAMETER stop "I am trying"
+PARAMETER stop "I have a"
+PARAMETER stop "Here is"
+PARAMETER stop "Here are"
