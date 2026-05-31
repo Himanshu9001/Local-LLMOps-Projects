@@ -1,0 +1,92 @@
+# vLLM Production Deployment
+# Requires: NVIDIA GPU node (T4/V100/A100)
+# Tested on: Kaggle T4x2, AWS g4dn.xlarge
+# Note: Use ollama-deployment.yaml for Apple Silicon / CPU inference
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vllm-server
+  namespace: default
+  labels:
+    app: vllm-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vllm-server
+  template:
+    metadata:
+      labels:
+        app: vllm-server
+    spec:
+      containers:
+      - name: vllm
+        image: vllm/vllm-openai:latest
+        args:
+        - "--model"
+        - "Himanshu0910/sre-devops-mistral-7b"
+        - "--dtype"
+        - "float16"
+        - "--max-model-len"
+        - "2048"
+        - "--gpu-memory-utilization"
+        - "0.85"
+        - "--host"
+        - "0.0.0.0"
+        - "--port"
+        - "8000"
+        ports:
+        - containerPort: 8000
+        resources:
+          limits:
+            nvidia.com/gpu: 1
+            memory: "16Gi"
+          requests:
+            nvidia.com/gpu: 1
+            memory: "14Gi"
+        env:
+        - name: HUGGING_FACE_HUB_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: hf-secret
+              key: token
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 120
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 180
+          periodSeconds: 30
+      tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vllm-service
+  namespace: default
+spec:
+  selector:
+    app: vllm-server
+  ports:
+  - protocol: TCP
+    port: 8000
+    targetPort: 8000
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: hf-secret
+  namespace: default
+type: Opaque
+stringData:
+  token: "your-hf-token-here"
