@@ -1,0 +1,26 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ollama-model-loader
+  namespace: default
+spec:
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: model-loader
+        image: ollama/ollama:latest
+        command:
+        - /bin/sh
+        - -c
+        - |
+          echo "Waiting for Ollama service..."
+          until curl -s http://ollama-service:11434/api/tags > /dev/null; do
+            sleep 5
+          done
+          echo "Pulling sre-assistant model..."
+          ollama pull Himanshu0910/sre-devops-mistral-7b
+          echo "Model loaded ✅"
+        env:
+        - name: OLLAMA_HOST
+          value: "http://ollama-service:11434"

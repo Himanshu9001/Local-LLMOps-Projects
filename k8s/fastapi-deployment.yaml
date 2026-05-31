@@ -1,0 +1,97 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sre-api
+  namespace: default
+  labels:
+    app: sre-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sre-api
+  template:
+    metadata:
+      labels:
+        app: sre-api
+    spec:
+      containers:
+      - name: sre-api
+        image: python:3.12-slim
+        command:
+        - /bin/sh
+        - -c
+        - |
+          pip install fastapi uvicorn ollama pydantic --quiet
+          cat > /app/main.py << 'PYEOF'
+          import os, uuid, time
+          from fastapi import FastAPI, HTTPException
+          from fastapi.middleware.cors import CORSMiddleware
+          from pydantic import BaseModel
+          from typing import Optional
+          import ollama
+
+          app = FastAPI(title="SRE Assistant API")
+          app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+
+          OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "http://ollama-service:11434")
+          MODEL_NAME  = "sre-assistant"
+
+          class QueryRequest(BaseModel):
+              question: str
+              context:  Optional[str] = ""
+
+          @app.get("/health")
+          def health():
+              return {"status": "ok", "model": MODEL_NAME}
+
+          @app.post("/query")
+          def query(req: QueryRequest):
+              start  = time.time()
+              client = ollama.Client(host=OLLAMA_HOST)
+              prompt = req.question
+              if req.context:
+                  prompt = f"Context:\n{req.context}\n\nQuestion: {req.question}"
+              try:
+                  response = client.chat(
+                      model    = MODEL_NAME,
+                      messages = [{"role": "user", "content": prompt}],
+                      options  = {"temperature": 0.1, "num_predict": 400, "repeat_penalty": 1.5}
+                  )
+                  return {
+                      "request_id": str(uuid.uuid4())[:8],
+                      "answer":     response["message"]["content"].strip(),
+                      "model":      MODEL_NAME,
+                      "latency_ms": round((time.time()-start)*1000, 2)
+                  }
+              except Exception as e:
+                  raise HTTPException(status_code=503, detail=str(e))
+          PYEOF
+          uvicorn main:app --host 0.0.0.0 --port 8000
+        workingDir: /app
+        ports:
+        - containerPort: 8000
+        env:
+        - name: OLLAMA_HOST
+          value: "http://ollama-service:11434"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sre-api-service
+  namespace: default
+spec:
+  selector:
+    app: sre-api
+  ports:
+  - protocol: TCP
+    port: 8000
+    targetPort: 8000
+  type: NodePort
