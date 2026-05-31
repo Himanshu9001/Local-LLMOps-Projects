@@ -222,3 +222,10 @@ serving/ollama/*.zip
 serving/ollama/merged-model/
 data/processed/train.jsonl
 data/processed/
+serving/ollama/*.gguf
+serving/ollama/merged-f16/
+serving/ollama/convert_hf_to_gguf.py
+serving/ollama/checkpoint-650/
+mlflow-artifacts/
+mlflow.db
+*.gguf
